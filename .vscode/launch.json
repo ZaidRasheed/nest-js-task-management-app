@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/zaidrasheed/Desktop/coding/NestJs/nest-js-task-management-app",
+      "program": "/Users/zaidrasheed/Desktop/coding/NestJs/nest-js-task-management-app/build/Debug/outDebug"
+    }
+  ]
+}

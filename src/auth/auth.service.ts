@@ -2,16 +2,22 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { AuthCredentialsDto } from './dto/auth-credentials.dto';
 import * as bcrypt from 'bcrypt';
-
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './jwt-payload.interface';
 @Injectable()
 export class AuthService {
-    constructor(private usersRepository: UsersRepository) {}
+    constructor(
+        private usersRepository: UsersRepository,
+        private jwtService: JwtService,
+    ) {}
 
     async signUp(authCredentialsDto: AuthCredentialsDto): Promise<void> {
         return this.usersRepository.createUser(authCredentialsDto);
     }
 
-    async signIn(authCredentialsDto: AuthCredentialsDto): Promise<string> {
+    async signIn(
+        authCredentialsDto: AuthCredentialsDto,
+    ): Promise<{ accessToken: string }> {
         const { username, password } = authCredentialsDto;
 
         const user = await this.usersRepository.findOne({
@@ -19,12 +25,13 @@ export class AuthService {
         });
 
         if (user && (await bcrypt.compare(password, user.password))) {
-            // Here you would typically generate and return a JWT token
-            return 'successful sign in - token would be here';
+            const payLoad: JwtPayload = { username };
+
+            const accessToken: string = this.jwtService.sign(payLoad);
+
+            return { accessToken };
         } else {
             throw new UnauthorizedException('Invalid credentials');
         }
-
-        // Validate user credentials and return JWT token
     }
 }
