@@ -4,8 +4,10 @@ import { AuthCredentialsDto } from './dto/auth-credentials.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './jwt-payload.interface';
+import { Logger } from '@nestjs/common';
 @Injectable()
 export class AuthService {
+    private logger = new Logger('AuthService');
     constructor(
         private usersRepository: UsersRepository,
         private jwtService: JwtService,
@@ -28,6 +30,7 @@ export class AuthService {
             const payLoad: JwtPayload = { username };
 
             const accessToken: string = this.jwtService.sign(payLoad);
+            this.logger.log(`User "${username}" has successfully signed in.`);
 
             return { accessToken };
         } else {

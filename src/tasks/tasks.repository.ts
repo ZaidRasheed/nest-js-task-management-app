@@ -4,14 +4,16 @@ import {
     Injectable,
     NotFoundException,
     BadRequestException,
+    InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateTaskDTO } from './dto/create-task.dto';
 import { TaskStatus } from './task-status.enum';
 import { validate as isValidUUID } from 'uuid';
 import { User } from 'src/auth/user.entity';
-
+import { Logger } from '@nestjs/common';
 @Injectable()
 export class TasksRepository extends Repository<Task> {
+    private logger = new Logger('TasksRepository');
     constructor(private dataSource: DataSource) {
         super(Task, dataSource.createEntityManager());
     }
@@ -32,10 +34,18 @@ export class TasksRepository extends Repository<Task> {
                 { search: `%${search}%` },
             );
         }
-
-        const tasks = await query.getMany();
-
-        return tasks;
+        try {
+            const tasks = await query.getMany();
+            return tasks;
+        } catch (error) {
+            this.logger.error(
+                `Failed to get tasks for user "${user.username}". Filters: ${JSON.stringify(
+                    filterDto,
+                )}`,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
     }
 
     async getTaskById(id: string, user: User): Promise<Task> {
@@ -58,15 +68,25 @@ export class TasksRepository extends Repository<Task> {
     async createTask(createTaskDto: CreateTaskDTO, user: User): Promise<Task> {
         const { title, description } = createTaskDto;
 
-        const task = this.create({
-            title,
-            description,
-            status: TaskStatus.OPEN,
-            user,
-        });
+        try {
+            const task = this.create({
+                title,
+                description,
+                status: TaskStatus.OPEN,
+                user,
+            });
 
-        await this.save(task);
-        return task;
+            await this.save(task);
+            return task;
+        } catch (error) {
+            this.logger.error(
+                `Failed to create task for user "${user.username}". Data: ${JSON.stringify(
+                    createTaskDto,
+                )}`,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
     }
 
     async deleteTask(
@@ -78,13 +98,21 @@ export class TasksRepository extends Repository<Task> {
             throw new BadRequestException(`"${id}" is not a valid ID`);
         }
 
-        const result = await this.delete({ id, user });
-        if (result.affected === 0) {
-            throw new NotFoundException(`Task with ID "${id}" not found`);
-        }
+        try {
+            const result = await this.delete({ id, user });
+            if (result.affected === 0) {
+                throw new NotFoundException(`Task with ID "${id}" not found`);
+            }
 
-        // return a successful deletion message with the task id
-        return { deleted: true, id };
+            // return a successful deletion message with the task id
+            return { deleted: true, id };
+        } catch (error) {
+            this.logger.error(
+                `Failed to delete task with ID "${id}" for user "${user.username}"`,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
     }
 
     async updateTaskStatus(
@@ -101,8 +129,16 @@ export class TasksRepository extends Repository<Task> {
         if (!task) {
             throw new NotFoundException(`Task with ID "${id}" not found`);
         }
-        task.status = status;
-        await this.save(task);
-        return task;
+        try {
+            task.status = status;
+            await this.save(task);
+            return task;
+        } catch (error) {
+            this.logger.error(
+                `Failed to update status of task with ID "${id}" for user "${user.username}" to "${status}"`,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
     }
 }
