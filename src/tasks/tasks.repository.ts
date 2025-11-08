@@ -9,7 +9,7 @@ import {
 import { CreateTaskDTO } from './dto/create-task.dto';
 import { TaskStatus } from './task-status.enum';
 import { validate as isValidUUID } from 'uuid';
-import { User } from 'src/auth/user.entity';
+import { User } from '../auth/user.entity';
 import { Logger } from '@nestjs/common';
 @Injectable()
 export class TasksRepository extends Repository<Task> {
